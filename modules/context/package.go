@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -101,9 +103,27 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 		return perm.AccessModeNone, nil
 	}
 
-	// TODO: ActionUser permission check
 	accessMode := perm.AccessModeNone
-	if pkg.Owner.IsOrganization() {
+
+	if doer != nil && doer.IsActions() && ctx.Data["IsActionsToken"] == true {
+		taskID := ctx.Data["ActionsTaskID"].(int64)
+		task, err := actions_model.GetTaskByID(ctx, taskID)
+		if err != nil {
+			return perm.AccessModeNone, err
+		}
+		repo, err := repo_model.GetRepositoryByID(ctx, task.RepoID)
+		if err != nil {
+			return perm.AccessModeNone, err
+		}
+
+		if repo.OwnerID == pkg.Owner.ID {
+			if task.IsForkPullRequest {
+				accessMode = perm.AccessModeRead
+			} else {
+				accessMode = perm.AccessModeWrite
+			}
+		}
+	} else if pkg.Owner.IsOrganization() {
 		org := organization.OrgFromUser(pkg.Owner)
 
 		if doer != nil && !doer.IsGhost() {
