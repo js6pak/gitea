@@ -775,9 +775,9 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
+#ifeq ($(CI),true)
+#	cp /build/* $(DIST)/binaries
+#endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
